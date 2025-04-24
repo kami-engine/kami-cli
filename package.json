@@ -1,0 +1,42 @@
+{
+  "name": "@kami-engine/kami-cli",
+  "version": "0.1.0",
+  "description": "Command line tool for kami",
+  "main": "dist/index.js",
+  "files": [
+    "dist"
+  ],
+  "bin": {
+    "kami": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "prepare": "tsc -p tsconfig.build.json",
+    "test": "vitest run",
+    "prettier": "prettier --check ./tests ./src",
+    "lint": "eslint ./tests ./src"
+  },
+  "type": "module",
+  "keywords": [],
+  "author": "Jurmerlo",
+  "license": "MIT",
+  "dependencies": {
+    "@ltd/j-toml": "^1.38.0",
+    "archiver": "^7.0.1",
+    "commander": "^13.1.0",
+    "luamin": "^1.0.4",
+    "pngjs": "^7.0.0",
+    "rimraf": "^6.0.1",
+    "typescript": "^5.8.3",
+    "typescript-to-lua": "^1.31.0"
+  },
+  "devDependencies": {
+    "@kami-engine/eslint-config": "github:kami-engine/eslint-config",
+    "@kami-engine/prettier-config": "github:kami-engine/prettier-config",
+    "@types/archiver": "^6.0.3",
+    "@types/pngjs": "^6.0.5",
+    "eslint": "^9.25.1",
+    "prettier": "^3.5.3",
+    "vitest": "^3.1.2"
+  }
+}
