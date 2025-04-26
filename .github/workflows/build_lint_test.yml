@@ -1,4 +1,4 @@
-name: Lint, Build and Test Atlas
+name: Lint, Build and Test Kami CLI
 on:
   pull_request:
     types: [opened, synchronize, reopened]
@@ -7,7 +7,7 @@ on:
       - main
 jobs:
   lint-build-and-test:
-    name: 'lint, build and test atlas'
+    name: 'lint, build and test Kami CLI'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -24,14 +24,14 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - name: Prettier check
+      - name: Prettier
         run: pnpm prettier
 
       - name: Linting
         run: pnpm lint
 
-      - name: Build Atlas
+      - name: Building
         run: pnpm build
 
-      - name: Run Tests
+      - name: Testing
         run: pnpm test
