@@ -10,11 +10,11 @@
     "kami": "./dist/index.js"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
     "prepare": "tsc -p tsconfig.build.json",
-    "test": "vitest run",
+    "build": "tsc -p tsconfig.build.json",
     "prettier": "prettier --check ./tests ./src",
-    "lint": "eslint ./tests ./src"
+    "lint": "eslint ./tests ./src",
+    "test": "vitest run"
   },
   "type": "module",
   "keywords": [],
