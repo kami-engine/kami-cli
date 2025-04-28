@@ -1,7 +1,7 @@
 /**
  * Configuration options that are read from the toml file.
  */
-export type Config = {
+export type AtlasConfig = {
   /**
    * The name of the image and data files.
    */
@@ -74,8 +74,8 @@ export type Config = {
 /**
  * Helper to load the configs.
  */
-export type AtlasConfig = {
-  atlas: Config[];
+export type AtlasConfigList = {
+  atlases: AtlasConfig[];
 };
 
 /**

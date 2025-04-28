@@ -1,4 +1,4 @@
-import { PackMethod } from './config.js';
+import { PackMethod } from './atlasConfig.js';
 import { Rectangle } from './rectangle.js';
 
 /**

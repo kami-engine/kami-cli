@@ -3,15 +3,15 @@ import { existsSync, mkdirSync, readFileSync } from 'fs';
 import Path from 'path';
 
 import { Atlas } from './atlas.js';
-import { AtlasConfig } from './config.js';
+import { AtlasConfigList } from './atlasConfig.js';
 import { saveAtlasImage, saveJsonData } from './save.js';
 
 /**
  * Packs atlases based on the provided configuration file.
- * @param userPath The path to the TOML configuration file. Defaults to "config.toml" if not provided.
+ * @param userPath The path to the TOML configuration file. Defaults to "kami.toml" if not provided.
  */
 export function packAtlas(userPath?: string): void {
-  let configPath = 'config.toml';
+  let configPath = 'kami.toml';
 
   // Use the provided path if specified.
   if (userPath) {
@@ -24,7 +24,7 @@ export function packAtlas(userPath?: string): void {
     return;
   }
 
-  const fullPath = Path.join(process.cwd(), configPath);
+  const fullPath = Path.isAbsolute(configPath) ? configPath : Path.join(process.cwd(), configPath);
   const dir = Path.dirname(fullPath);
 
   if (!existsSync(fullPath)) {
@@ -36,24 +36,24 @@ export function packAtlas(userPath?: string): void {
   process.chdir(dir);
 
   // Load and parse the configuration file.
-  let atlasConfig: AtlasConfig;
+  let configList: AtlasConfigList;
   try {
     const tomlString = readFileSync(fullPath).toString();
-    atlasConfig = TOML.parse(tomlString) as AtlasConfig;
+    configList = TOML.parse(tomlString, 1, undefined, false) as AtlasConfigList;
   } catch (error) {
     process.stdout.write(`Error: Failed to read or parse configuration file: ${(error as Error).message}\n`);
     return;
   }
 
   // Validate the configuration.
-  if (!atlasConfig.atlas || atlasConfig.atlas.length === 0) {
-    process.stdout.write('Error: No valid atlas configurations found in the file.\n');
+  if (!configList.atlases || configList.atlases.length === 0) {
+    process.stdout.write('No atlaeses in config file.\n');
     return;
   }
 
   // Process each atlas configuration.
   let packedCount = 0;
-  for (const config of atlasConfig.atlas) {
+  for (const config of configList.atlases) {
     // Convert numeric properties to numbers.
     if (config.extrude) {
       config.extrude = Number(config.extrude);

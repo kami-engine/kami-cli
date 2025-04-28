@@ -1,3 +1,4 @@
+import TOML from '@ltd/j-toml';
 import archiver from 'archiver';
 import { spawnSync } from 'child_process';
 import { cpSync, createWriteStream, existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
@@ -8,6 +9,7 @@ import * as ts from 'typescript';
 import * as tstl from 'typescript-to-lua';
 
 import { packAtlas } from '../atlas/main.js';
+import { KamiConfig } from './kamiConfig.js';
 
 export type PackLoveOptions = {
   /**
@@ -23,27 +25,12 @@ export type PackLoveOptions = {
 
 export type BuildProjectOptions = {
   /**
-   * Whether to clean the `export` folder before building. Defaults to `false`.
+   * Whether to clean the `out` folder before building. Defaults to `false`.
    */
   clean?: boolean;
 
   /**
-   * Whether to bundle the project into a single Lua file. Defaults to `false`.
-   */
-  bundle?: boolean;
-
-  /**
-   * Whether to minify the output Lua code. Defaults to `false`.
-   */
-  minify?: boolean;
-
-  /**
-   * Whether to skip packing atlases. Defaults to `false`.
-   */
-  noAtlas?: boolean;
-
-  /**
-   * The path to the TypeScript project configuration file. Defaults to `tsconfig.json`.
+   * The path to the Kami project folder. Defaults to the current folder.
    */
   project?: string;
 };
@@ -79,29 +66,45 @@ export function packLove({ name, project }: PackLoveOptions): void {
 
 /**
  * Builds the TypeScript project into Lua code and copies all assets.
- * @param bundle - Whether to bundle the project into a single Lua file.
  * @param clean - Whether to clean the `export` folder before building.
- * @param minify - Whether to minify the output Lua code.
- * @param noAtlas - Whether to skip packing atlases.
- * @param project - The path to the TypeScript project configuration file. Defaults to `tsconfig.json`.
+ * @param project - The path to the Kami project folder. Defaults to the current folder.
  * @returns `true` if the build was successful, `false` otherwise.
  */
-export function buildProject({ bundle, clean, minify, noAtlas, project }: BuildProjectOptions): boolean {
-  project ??= 'tsconfig.json';
+export function buildProject({ clean, project }: BuildProjectOptions): boolean {
+  let projectPath = process.cwd();
+  if (project) {
+    if (path.isAbsolute(project)) {
+      projectPath = project;
+    } else {
+      projectPath = path.join(process.cwd(), project);
+    }
+  }
+  process.chdir(projectPath);
 
+  const configPath = path.join(projectPath, 'kami.toml');
+
+  if (!existsSync(configPath)) {
+    process.stdout.write(`Error: kami.toml not found in ${projectPath}\n`);
+    return false;
+  }
+
+  const data = readFileSync(configPath);
+  const config = TOML.parse(data.toString(), 1, undefined, false) as KamiConfig;
+
+  const outPath = path.join(projectPath, config.outDir ? config.outDir : 'export');
   if (clean) {
-    process.stdout.write('Cleaning export folder...\n');
-    rimrafSync(path.join(process.cwd(), 'export'));
+    process.stdout.write('Cleaning output folder...\n');
+    rimrafSync(outPath);
   }
 
-  if (!existsSync(path.join(process.cwd(), 'export'))) {
-    mkdirSync(path.join(process.cwd(), 'export'));
+  if (!existsSync(outPath)) {
+    mkdirSync(outPath, { recursive: true });
   }
 
-  if (!noAtlas) {
+  if (!config.noAtlas) {
     process.stdout.write('Packing atlases...\n');
     try {
-      packAtlas();
+      packAtlas(configPath);
     } catch (error) {
       process.stdout.write(`Error: Failed to pack atlases: ${(error as Error).message}\n`);
       return false;
@@ -109,39 +112,49 @@ export function buildProject({ bundle, clean, minify, noAtlas, project }: BuildP
   }
 
   process.stdout.write('\nCopying assets...\n');
-  if (existsSync(path.join(process.cwd(), 'assets'))) {
-    cpSync(path.join(process.cwd(), 'assets'), path.join(process.cwd(), 'export/assets'), { recursive: true });
+  if (existsSync(path.join(projectPath, 'assets'))) {
+    cpSync(path.join(projectPath, 'assets'), path.join(outPath, 'assets'), { recursive: true });
+  }
+
+  process.stdout.write('Creating conf.lua...\n');
+  const confLua = buildConfLua(config);
+  if (confLua) {
+    const confLuaPath = path.join(outPath, 'conf.lua');
+    writeFileSync(confLuaPath, confLua);
   }
 
   process.stdout.write('\nCompiling TypeScript to Lua...\n');
 
   let result;
   try {
-    if (minify) {
-      result = tstl.transpileProject(path.join(process.cwd(), project), {
+    if (config.minify) {
+      result = tstl.transpileProject(path.join(projectPath, 'tsconfig.json'), {
         luaBundle: 'main.lua',
         luaBundleEntry: 'src/main.ts',
         noEmitOnError: true,
+        outDir: outPath,
       });
 
       // No errors while transpiling, minify the output.
       if (result.diagnostics.length === 0) {
-        const mainLua = path.join(process.cwd(), 'export/main.lua');
+        const mainLua = path.join(outPath, 'main.lua');
         const data = readFileSync(mainLua, 'utf8');
 
         const minified = luamin.minify(data);
         writeFileSync(mainLua, minified);
       }
     } else {
-      if (bundle) {
-        result = tstl.transpileProject(path.join(process.cwd(), project), {
+      if (config.bundle) {
+        result = tstl.transpileProject(path.join(projectPath, 'tsconfig.json'), {
           luaBundle: 'main.lua',
           luaBundleEntry: 'src/main.ts',
           noEmitOnError: true,
+          outDir: outPath,
         });
       } else {
-        result = tstl.transpileProject(path.join(process.cwd(), project), {
+        result = tstl.transpileProject(path.join(projectPath, 'tsconfig.json'), {
           noEmitOnError: true,
+          outDir: outPath,
         });
       }
     }
@@ -174,4 +187,70 @@ export function buildAndRun(options: BuildProjectOptions): void {
     spawnSync('love', ['export'], { stdio: 'inherit' });
     process.stdout.write('Finished running Love2D.\n');
   }
+}
+
+/**
+ * Build the Love2D configuration code (conf.lua) from the provided configuration object.
+ * @param config - The configuration object containing the Love2D settings.
+ * @returns The lua code for the Love2D configuration.
+ */
+export function buildConfLua(config: KamiConfig): string {
+  const loveConfig = config.love;
+  if (!loveConfig) {
+    return '';
+  }
+
+  let confLua = `function love.conf(config)\n`;
+
+  const prefixes = ['config'];
+  for (const loveKey in loveConfig) {
+    if (!Object.prototype.hasOwnProperty.call(loveConfig, loveKey)) {
+      continue;
+    }
+
+    confLua += addKeyAndValue(loveKey, loveConfig, prefixes);
+  }
+  confLua += 'end\n';
+
+  return confLua;
+}
+
+/**
+ * Add key and value pair to the configuration string.
+ * @param key - The key to add.
+ * @param item - The item containing the key.
+ * @param prefixes - The prefixes to use for the key. (e.g., "config.window").
+ * @returns The configuration line as a string.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function addKeyAndValue(key: string, item: any, prefixes: string[]): string {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+  const value = item[key];
+  if (value === undefined) {
+    return '';
+  }
+
+  let configLine = `  ${prefixes.join('.')}.${key} = `;
+  if (typeof value === 'object') {
+    configLine = '\n';
+    prefixes.push(key);
+    for (const subKey in value) {
+      if (!Object.prototype.hasOwnProperty.call(value, subKey)) {
+        continue;
+      }
+
+      configLine += addKeyAndValue(subKey, value, prefixes);
+    }
+    prefixes.pop();
+  } else if (typeof value === 'string') {
+    configLine += `"${value}"\n`;
+  } else if (typeof value === 'number') {
+    configLine += `${value}\n`;
+  } else if (typeof value === 'boolean') {
+    configLine += `${value ? 'true' : 'false'}\n`;
+  } else {
+    configLine += `nil\n`;
+  }
+
+  return configLine;
 }

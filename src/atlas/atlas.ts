@@ -2,7 +2,7 @@ import { existsSync, lstatSync, readdirSync } from 'fs';
 import Path from 'path';
 import { PNG } from 'pngjs';
 
-import { Config } from './config.js';
+import { AtlasConfig } from './atlasConfig.js';
 import { Image } from './image.js';
 import { Packer } from './packer.js';
 import { Rectangle } from './rectangle.js';
@@ -39,7 +39,7 @@ export class Atlas {
   /**
    * The atlas configuration.
    */
-  private config: Config;
+  private config: AtlasConfig;
 
   /**
    * Indicates whether an error was found during initialization.
@@ -51,7 +51,7 @@ export class Atlas {
    * Creates a new atlas instance.
    * @param config The configuration object for the atlas.
    */
-  constructor(config: Config) {
+  constructor(config: AtlasConfig) {
     this.config = config;
 
     // Validate the configuration.

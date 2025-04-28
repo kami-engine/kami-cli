@@ -22,18 +22,16 @@ atlas
 
 program
   .command('.love')
-  .description('Create a .love file from a folder')
-  .option('-n --name <string>', 'The name of the .love file')
+  .description('Create a .love file from a folder.')
+  .option('-n --name <string>', 'The name of the .love file.')
   .option('-p, --project <string>', 'The input folder. Defaults to export.')
   .action(packLove);
 
 program
   .command('build')
   .description('Build the Lumi project')
-  .option('-c, --clean', 'Clean the export directory')
-  .option('--noAtlas', "Don't build the sprite atlas")
-  .option('--minify', 'Minify the lua code for smaller file size')
-  .option('-p --project <string>', 'The project tsconfig to use')
+  .option('-c --clean', 'Clean the output folder before building.')
+  .option('-p --project <string>', 'The project folder.')
   .action((options: BuildProjectOptions) => {
     buildProject(options);
   });
@@ -41,10 +39,8 @@ program
 program
   .command('run')
   .description('Build and run the Lumi project.')
-  .option('-c, --clean', 'Clean the export directory.')
-  .option('--noAtlas', "Don't build the sprite atlas.")
-  .option('--minify', 'Minify the lua code for smaller file size')
-  .option('-p --project <string>', 'The project tsconfig to use')
+  .option('-c --clean', 'Clean the output folder before building.')
+  .option('-p --project <string>', 'The project folder.')
   .action((options: BuildProjectOptions) => {
     buildAndRun(options);
   });

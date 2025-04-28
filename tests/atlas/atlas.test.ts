@@ -1,10 +1,10 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 
 import { Atlas } from '../../src/atlas/atlas.js';
-import { Config } from '../../src/atlas/config.js';
+import { AtlasConfig } from '../../src/atlas/atlasConfig.js';
 
 describe('Atlas', () => {
-  let config: Config;
+  let config: AtlasConfig;
 
   beforeAll(() => {
     config = {

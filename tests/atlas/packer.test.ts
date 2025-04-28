@@ -2,10 +2,10 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { Packer } from '../../src//atlas/packer.js';
 import { Atlas } from '../../src/atlas/atlas.js';
-import { Config } from '../../src/atlas/config.js';
+import { AtlasConfig } from '../../src/atlas/atlasConfig.js';
 
 describe('Packer', () => {
-  let config: Config;
+  let config: AtlasConfig;
   let atlas: Atlas;
 
   beforeEach(() => {
